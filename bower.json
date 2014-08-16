@@ -1,0 +1,7 @@
+{
+  "name": "open-map#gh-pages",
+  "private": true,
+  "dependencies": {
+    "open-map": "ruben96/open-map#master"
+  }
+}

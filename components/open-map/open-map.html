@@ -1,0 +1,310 @@
+<!--
+The `open-map` element renders a Open Map Street thanks to
+ [Mapbox](http://mapbox.com/).
+
+##### Example: Simple Map
+    <style>
+      open-map {
+        display: block;
+        height: 100vh;
+      }
+    </style>
+    <open-map latitude="38.867847"
+              longitude="1.310977"
+              geolocationUI
+              zoom="15"
+              mapID="examples.map-i875kd35">
+    </open-map>
+
+@element open-map
+@blurb Element for rendering a Open Street Map with MapBox.
+@status alpha
+@homepage https://ruben96.github.io/open-map/components/open-map/
+-->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="open-import.html">
+<link rel="import" href="open-marker.html">
+
+<polymer-element name="open-map" attributes="latitude longitude zoom minZoom
+              maxZoom mapID disableZoomUI zoomable geolocationUI fullscreenUI">
+  <template>
+    <link href='build/css/mapbox.min.css' rel='stylesheet'/>
+    <style>
+      :host{
+        position:relative;
+      }
+      #openMap{
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+    </style>
+    <div id="openMap"></div>
+    <content id="markers" select="open-marker"></content>
+  </template>
+  <script>
+    Polymer( 'open-map', {
+      /**
+      * A Mapbox map object
+      *
+      * @property map
+      * @type L.mapbox.map
+      * @default null
+      */
+      map: null,
+
+      /**
+       * The `mapID`, it is the identifier of the map in mapbox, you can create
+       * your own map in [Mapbox](http://mapbox.com/editor) or use the default.
+
+       *
+
+       * @attribute mapID
+
+       * @type string
+
+       * @default gnurub.j3ee3mk2
+
+       */
+      mapID: 'gnurub.j3ee3mk2',
+
+      /**
+       * If set, enable a button for geolocation.
+
+       *
+
+       * @attribute geolocationUI
+
+       * @type boolean
+
+       * @default false
+
+       */
+      geolocationUI: false,
+
+      /**
+       * If set, enable a button for fullsceeen of the map.
+
+       *
+
+       * @attribute fullscreenUI
+
+       * @type boolean
+
+       * @default false
+
+       */
+      fullscreenUI: false,
+
+      /**
+       * The map's zoom level.
+
+       *
+
+       * @attribute zoom
+
+       * @type number
+
+       * @default 10
+
+       */
+      zoom: 10,
+
+      /**
+       * If set, removes the map's default UI zoom
+
+       *
+
+       * @attribute disableZoomUI
+
+       * @type boolean
+
+       * @default false
+
+       */
+      disableZoomUI: false,
+
+      /**
+       * If false, prevent the user from zooming the map interactively.
+
+       *
+
+       * @attribute zoomable
+
+       * @type boolean
+
+       * @default true
+
+       */
+      zoomable: true,
+
+      /**
+       * A latitude to center the map on.
+
+       *
+
+       * @attribute latitude
+
+       * @type float
+
+       * @default 38.867847507701114
+
+      */
+      latitude: ﻿38.867847507701114,
+
+      /**
+       * A longitude to center the map on.
+       *
+
+       * @attribute longitude
+
+       * @type float
+
+       * @default 1.3109779357910156
+
+      */
+      longitude: 1.3109779357910156,
+
+      /**
+       * The `maxZoom` is the maximum zoom level of the map.
+
+       *
+
+       * @attribute maxZoom
+
+       * @type number
+
+       * @default 15
+
+      */
+      maxZoom: 16,
+
+      /**
+       * The `minZoom` is the minimum zoom level of the map.
+
+       *
+
+       * @attribute minZoom
+
+       * @type number
+
+       * @default 1
+
+      */
+      minZoom: 1,
+
+      observe:{
+        latitude: 'updateCenter',
+        longitude: 'updateCenter'
+      },
+
+      accessToken:'pk.eyJ1IjoiZ251cnViIiwiYSI6InRZRVNjWDQifQ.Db2dDEClQ3ybQe_egT87lg',
+
+      attached: function() {
+        this.resize();
+        this.updateMarkers();
+      },
+
+      created:function(){
+        this.markers = [];
+      },
+
+      setCenter:function(){
+        this.center = [];
+        this.center[0] = this.latitude;
+        this.center[1] = this.longitude;
+      },
+
+      ready:function(){
+        L.mapbox.accessToken = this.accessToken;
+        var mapOptions = {
+          minZoom: this.minZoom,
+          maxZoom: this.maxZoom,
+          scrollWheelZoom: this.zoomable,
+          touchZoom: this.zoomable,
+          doubleClickZoom: this.zoomable
+        };
+
+        this.map = L.mapbox.map( this.$.openMap, this.mapID, mapOptions );
+        this.updateCenter();
+        this.map.on('zoomlevelschange', function (e) {
+          this.fire( 'open-map-zoomened', {data: e});
+        }.bind( this ) );
+        /**
+         * The `open-map-ready` event is fired when the Open Street Map API has
+         * fully loaded.
+         *
+         * @event open-map-ready
+
+         */
+        this.fire( 'open-map-ready' );
+      },
+
+      updateCenter:function(){
+        this.setCenter();
+        this.map.setView( this.center, Number(this.zoom) );
+      },
+
+      toggleGeolocator:function () {
+        var locate;
+        if( this.geolocationUI )
+          locate = L.control.locate().addTo( this.map );
+        else if( locate )
+          locate.removeFrom( this.map );
+      },
+
+      toggleFullscreen:function () {
+        var fullscreen;
+        if( this.fullscreenUI )
+          fullscreen = L.control.fullscreen().addTo( this.map );
+        else if( fullscreen )
+          fullscreen.removeFrom( this.map );
+      },
+
+      disableZoomUIChanged:function( oldVal, newVal ){
+        if( newVal )
+          this.map.zoomControl.removeFrom( this.map );
+        else
+          this.map.zoomControl.addTo( this.map );
+      },
+
+      zoomChanged:function(){
+        this.map.setZoom( Number( this.zoom ) );
+        this.fire( 'open-map-zoomened', { data: this.zoom } );
+      },
+
+      geolocationUIChanged:function(){
+        this.toggleGeolocator();
+      },
+
+      fullscreenUIChanged:function () {
+        this.toggleFullscreen();
+      },
+
+      resize:function () {
+        this.map.on( 'resize', this.updateCenter.bind( this ) );
+      },
+
+      updateMarkers: function() {
+        this.markers = Array.prototype.slice.call(
+            this.$.markers.getDistributedNodes());
+        this.onMutation(this, this.updateMarkers);
+
+        if (this.markers.length && this.map) {
+          for (var i = 0, m; m = this.markers[i]; ++i) {
+            m.map = this.map;
+          }
+        }
+      },
+
+      clear:function() {
+        for( var i = 0, m; m = this.markers[i]; i++ ) {
+           this.map.removeLayer( m.markers );
+           m.map = null;
+        }
+      }
+    });
+  </script>
+</polymer-element>
